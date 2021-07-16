@@ -9,6 +9,7 @@ import (
 	"database/sql/driver"
 	"encoding/gob"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"net/url"
@@ -126,6 +127,12 @@ func (FieldType) Fields() []ent.Field { //nolint:funlen
 				dialect.SQLite:   "json",
 				dialect.MySQL:    "blob",
 			}),
+		field.String("password").
+			Optional().
+			Sensitive().
+			SchemaType(map[string]string{
+				dialect.MySQL: "char(32)",
+			}),
 
 		// ----------------------------------------------------------------------------
 		// Custom Go types
@@ -187,6 +194,12 @@ func (FieldType) Fields() []ent.Field { //nolint:funlen
 			GoType(net.IP("127.0.0.1")).
 			DefaultFunc(func() net.IP {
 				return net.IP("127.0.0.1")
+			}).
+			Validate(func(i []byte) error {
+				if net.ParseIP(string(i)) == nil {
+					return fmt.Errorf("ent/schema: invalid ip %q", string(i))
+				}
+				return nil
 			}),
 		field.Int("null_int64").
 			Optional().
@@ -241,6 +254,38 @@ func (FieldType) Fields() []ent.Field { //nolint:funlen
 			DefaultFunc(func() Triple {
 				return Triple{E: [3]string{"A", "B", "C"}}
 			}),
+		field.Int("big_int").
+			Optional().
+			GoType(BigInt{}),
+		field.Other("password_other", Password("")).
+			Optional().
+			Sensitive().
+			SchemaType(map[string]string{
+				dialect.MySQL:    "char(32)",
+				dialect.SQLite:   "char(32)",
+				dialect.Postgres: "varchar",
+			}),
+	}
+}
+
+type Password string
+
+func (p Password) Value() (driver.Value, error) {
+	return string(p), nil
+}
+
+func (p *Password) Scan(src interface{}) error {
+	switch src := src.(type) {
+	case nil:
+		return nil
+	case string:
+		*p = Password(src)
+		return nil
+	case []byte:
+		*p = Password(src)
+		return nil
+	default:
+		return fmt.Errorf("scan: unable to scan type %T into string", src)
 	}
 }
 
@@ -418,4 +463,45 @@ func (s *StringScanner) Scan(value interface{}) (err error) {
 // Value implements the driver Valuer interface.
 func (s StringScanner) Value() (driver.Value, error) {
 	return string(s), nil
+}
+
+type BigInt struct {
+	*big.Int
+}
+
+func NewBigInt(i int64) BigInt {
+	return BigInt{Int: big.NewInt(i)}
+}
+
+func (b *BigInt) Scan(src interface{}) error {
+	var i sql.NullString
+	if err := i.Scan(src); err != nil {
+		return err
+	}
+	if !i.Valid {
+		return nil
+	}
+	if b.Int == nil {
+		b.Int = big.NewInt(0)
+	}
+	// Value came in a floating point format.
+	if strings.ContainsAny(i.String, ".+e") {
+		f := big.NewFloat(0)
+		if _, err := fmt.Sscan(i.String, f); err != nil {
+			return err
+		}
+		b.Int, _ = f.Int(b.Int)
+	} else if _, err := fmt.Sscan(i.String, b.Int); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b BigInt) Value() (driver.Value, error) {
+	return b.String(), nil
+}
+
+func (b BigInt) Add(c BigInt) BigInt {
+	b.Int = b.Int.Add(b.Int, c.Int)
+	return b
 }

@@ -52,7 +52,6 @@ func (fu *FileUpdate) SetNillableDeleted(b *bool) *FileUpdate {
 
 // SetParentID sets the "parent_id" field.
 func (fu *FileUpdate) SetParentID(i int) *FileUpdate {
-	fu.mutation.ResetParentID()
 	fu.mutation.SetParentID(i)
 	return fu
 }
@@ -298,8 +297,8 @@ func (fu *FileUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if n, err = sqlgraph.UpdateNodes(ctx, fu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{file.Label}
-		} else if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		} else if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return 0, err
 	}
@@ -336,7 +335,6 @@ func (fuo *FileUpdateOne) SetNillableDeleted(b *bool) *FileUpdateOne {
 
 // SetParentID sets the "parent_id" field.
 func (fuo *FileUpdateOne) SetParentID(i int) *FileUpdateOne {
-	fuo.mutation.ResetParentID()
 	fuo.mutation.SetParentID(i)
 	return fuo
 }
@@ -609,8 +607,8 @@ func (fuo *FileUpdateOne) sqlSave(ctx context.Context) (_node *File, err error) 
 	if err = sqlgraph.UpdateNode(ctx, fuo.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{file.Label}
-		} else if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		} else if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return nil, err
 	}

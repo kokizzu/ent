@@ -67,7 +67,10 @@ func (d *MySQL) fkExist(ctx context.Context, tx dialect.Tx, name string) (bool, 
 // table loads the current table description from the database.
 func (d *MySQL) table(ctx context.Context, tx dialect.Tx, name string) (*Table, error) {
 	rows := &sql.Rows{}
-	query, args := sql.Select("column_name", "column_type", "is_nullable", "column_key", "column_default", "extra", "character_set_name", "collation_name").
+	query, args := sql.Select(
+		"column_name", "column_type", "is_nullable", "column_key", "column_default", "extra", "character_set_name", "collation_name",
+		"numeric_precision", "numeric_scale",
+	).
 		From(sql.Table("COLUMNS").Schema("INFORMATION_SCHEMA")).
 		Where(sql.And(
 			d.matchSchema(),
@@ -379,15 +382,20 @@ func (d *MySQL) prepare(ctx context.Context, tx dialect.Tx, change *changes, tab
 // scanColumn scans the column information from MySQL column description.
 func (d *MySQL) scanColumn(c *Column, rows *sql.Rows) error {
 	var (
-		nullable sql.NullString
-		defaults sql.NullString
+		nullable         sql.NullString
+		defaults         sql.NullString
+		numericPrecision sql.NullInt64
+		numericScale     sql.NullInt64
 	)
-	if err := rows.Scan(&c.Name, &c.typ, &nullable, &c.Key, &defaults, &c.Attr, &sql.NullString{}, &sql.NullString{}); err != nil {
+	if err := rows.Scan(&c.Name, &c.typ, &nullable, &c.Key, &defaults, &c.Attr, &sql.NullString{}, &sql.NullString{}, &numericPrecision, &numericScale); err != nil {
 		return fmt.Errorf("scanning column description: %w", err)
 	}
 	c.Unique = c.UniqueKey()
 	if nullable.Valid {
 		c.Nullable = nullable.String == "YES"
+	}
+	if c.typ == "" {
+		return fmt.Errorf("missing type information for column %q", c.Name)
 	}
 	parts, size, unsigned, err := parseColumn(c.typ)
 	if err != nil {
@@ -418,8 +426,15 @@ func (d *MySQL) scanColumn(c *Column, rows *sql.Rows) error {
 		default:
 			c.Type = field.TypeInt8
 		}
-	case "numeric", "decimal", "double":
+	case "double":
 		c.Type = field.TypeFloat64
+	case "numeric", "decimal":
+		c.Type = field.TypeFloat64
+		// If precision is specified then we should take that into account.
+		if numericPrecision.Valid {
+			schemaType := fmt.Sprintf("%s(%d,%d)", parts[0], numericPrecision.Int64, numericScale.Int64)
+			c.SchemaType = map[string]string{dialect.MySQL: schemaType}
+		}
 	case "time", "timestamp", "date", "datetime":
 		c.Type = field.TypeTime
 		// The mapping from schema defaults to database
@@ -458,11 +473,11 @@ func (d *MySQL) scanColumn(c *Column, rows *sql.Rows) error {
 			c.Enums[i] = strings.Trim(e, "'")
 		}
 	case "char":
+		c.Type = field.TypeOther
 		// UUID field has length of 36 characters (32 alphanumeric characters and 4 hyphens).
-		if size != 36 {
-			return fmt.Errorf("unknown char(%d) type (not a uuid)", size)
+		if size == 36 {
+			c.Type = field.TypeUUID
 		}
-		c.Type = field.TypeUUID
 	case "point", "geometry", "linestring", "polygon":
 		c.Type = field.TypeOther
 	default:
@@ -652,7 +667,9 @@ func parseColumn(typ string) (parts []string, size int64, unsigned bool, err err
 			size, err = strconv.ParseInt(parts[1], 10, 0)
 		}
 	case "varbinary", "varchar", "char", "binary":
-		size, err = strconv.ParseInt(parts[1], 10, 64)
+		if len(parts) > 1 {
+			size, err = strconv.ParseInt(parts[1], 10, 64)
+		}
 	}
 	if err != nil {
 		return parts, size, unsigned, fmt.Errorf("converting %s size to int: %w", parts[0], err)

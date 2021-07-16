@@ -38,6 +38,20 @@ func (mc *MetadataCreate) SetNillableAge(i *int) *MetadataCreate {
 	return mc
 }
 
+// SetParentID sets the "parent_id" field.
+func (mc *MetadataCreate) SetParentID(i int) *MetadataCreate {
+	mc.mutation.SetParentID(i)
+	return mc
+}
+
+// SetNillableParentID sets the "parent_id" field if the given value is not nil.
+func (mc *MetadataCreate) SetNillableParentID(i *int) *MetadataCreate {
+	if i != nil {
+		mc.SetParentID(*i)
+	}
+	return mc
+}
+
 // SetID sets the "id" field.
 func (mc *MetadataCreate) SetID(i int) *MetadataCreate {
 	mc.mutation.SetID(i)
@@ -61,6 +75,26 @@ func (mc *MetadataCreate) SetNillableUserID(id *int) *MetadataCreate {
 // SetUser sets the "user" edge to the User entity.
 func (mc *MetadataCreate) SetUser(u *User) *MetadataCreate {
 	return mc.SetUserID(u.ID)
+}
+
+// AddChildIDs adds the "children" edge to the Metadata entity by IDs.
+func (mc *MetadataCreate) AddChildIDs(ids ...int) *MetadataCreate {
+	mc.mutation.AddChildIDs(ids...)
+	return mc
+}
+
+// AddChildren adds the "children" edges to the Metadata entity.
+func (mc *MetadataCreate) AddChildren(m ...*Metadata) *MetadataCreate {
+	ids := make([]int, len(m))
+	for i := range m {
+		ids[i] = m[i].ID
+	}
+	return mc.AddChildIDs(ids...)
+}
+
+// SetParent sets the "parent" edge to the Metadata entity.
+func (mc *MetadataCreate) SetParent(m *Metadata) *MetadataCreate {
+	return mc.SetParentID(m.ID)
 }
 
 // Mutation returns the MetadataMutation object of the builder.
@@ -135,8 +169,8 @@ func (mc *MetadataCreate) check() error {
 func (mc *MetadataCreate) sqlSave(ctx context.Context) (*Metadata, error) {
 	_node, _spec := mc.createSpec()
 	if err := sqlgraph.CreateNode(ctx, mc.driver, _spec); err != nil {
-		if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return nil, err
 	}
@@ -190,6 +224,45 @@ func (mc *MetadataCreate) createSpec() (*Metadata, *sqlgraph.CreateSpec) {
 		_node.ID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := mc.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   metadata.ChildrenTable,
+			Columns: []string{metadata.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: metadata.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := mc.mutation.ParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   metadata.ParentTable,
+			Columns: []string{metadata.ParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: metadata.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ParentID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -224,8 +297,8 @@ func (mcb *MetadataCreateBulk) Save(ctx context.Context) ([]*Metadata, error) {
 				} else {
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, mcb.driver, &sqlgraph.BatchCreateSpec{Nodes: specs}); err != nil {
-						if cerr, ok := isSQLConstraintError(err); ok {
-							err = cerr
+						if sqlgraph.IsConstraintError(err) {
+							err = &ConstraintError{err.Error(), err}
 						}
 					}
 				}

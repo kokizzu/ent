@@ -381,6 +381,20 @@ func (ftc *FieldTypeCreate) SetStringArray(s schema.Strings) *FieldTypeCreate {
 	return ftc
 }
 
+// SetPassword sets the "password" field.
+func (ftc *FieldTypeCreate) SetPassword(s string) *FieldTypeCreate {
+	ftc.mutation.SetPassword(s)
+	return ftc
+}
+
+// SetNillablePassword sets the "password" field if the given value is not nil.
+func (ftc *FieldTypeCreate) SetNillablePassword(s *string) *FieldTypeCreate {
+	if s != nil {
+		ftc.SetPassword(*s)
+	}
+	return ftc
+}
+
 // SetStringScanner sets the "string_scanner" field.
 func (ftc *FieldTypeCreate) SetStringScanner(ss schema.StringScanner) *FieldTypeCreate {
 	ftc.mutation.SetStringScanner(ss)
@@ -699,6 +713,34 @@ func (ftc *FieldTypeCreate) SetNillableTriple(s *schema.Triple) *FieldTypeCreate
 	return ftc
 }
 
+// SetBigInt sets the "big_int" field.
+func (ftc *FieldTypeCreate) SetBigInt(si schema.BigInt) *FieldTypeCreate {
+	ftc.mutation.SetBigInt(si)
+	return ftc
+}
+
+// SetNillableBigInt sets the "big_int" field if the given value is not nil.
+func (ftc *FieldTypeCreate) SetNillableBigInt(si *schema.BigInt) *FieldTypeCreate {
+	if si != nil {
+		ftc.SetBigInt(*si)
+	}
+	return ftc
+}
+
+// SetPasswordOther sets the "password_other" field.
+func (ftc *FieldTypeCreate) SetPasswordOther(s schema.Password) *FieldTypeCreate {
+	ftc.mutation.SetPasswordOther(s)
+	return ftc
+}
+
+// SetNillablePasswordOther sets the "password_other" field if the given value is not nil.
+func (ftc *FieldTypeCreate) SetNillablePasswordOther(s *schema.Password) *FieldTypeCreate {
+	if s != nil {
+		ftc.SetPasswordOther(*s)
+	}
+	return ftc
+}
+
 // Mutation returns the FieldTypeMutation object of the builder.
 func (ftc *FieldTypeCreate) Mutation() *FieldTypeMutation {
 	return ftc.mutation
@@ -833,6 +875,11 @@ func (ftc *FieldTypeCreate) check() error {
 			return &ValidationError{Name: "link", err: fmt.Errorf("ent: validator failed for field \"link\": %w", err)}
 		}
 	}
+	if v, ok := ftc.mutation.IP(); ok {
+		if err := fieldtype.IPValidator([]byte(v)); err != nil {
+			return &ValidationError{Name: "ip", err: fmt.Errorf("ent: validator failed for field \"ip\": %w", err)}
+		}
+	}
 	if _, ok := ftc.mutation.Role(); !ok {
 		return &ValidationError{Name: "role", err: errors.New("ent: missing required field \"role\"")}
 	}
@@ -963,6 +1010,9 @@ func (ftc *FieldTypeCreate) gremlin() *dsl.Traversal {
 	if value, ok := ftc.mutation.StringArray(); ok {
 		v.Property(dsl.Single, fieldtype.FieldStringArray, value)
 	}
+	if value, ok := ftc.mutation.Password(); ok {
+		v.Property(dsl.Single, fieldtype.FieldPassword, value)
+	}
 	if value, ok := ftc.mutation.StringScanner(); ok {
 		v.Property(dsl.Single, fieldtype.FieldStringScanner, value)
 	}
@@ -1049,6 +1099,12 @@ func (ftc *FieldTypeCreate) gremlin() *dsl.Traversal {
 	}
 	if value, ok := ftc.mutation.Triple(); ok {
 		v.Property(dsl.Single, fieldtype.FieldTriple, value)
+	}
+	if value, ok := ftc.mutation.BigInt(); ok {
+		v.Property(dsl.Single, fieldtype.FieldBigInt, value)
+	}
+	if value, ok := ftc.mutation.PasswordOther(); ok {
+		v.Property(dsl.Single, fieldtype.FieldPasswordOther, value)
 	}
 	return v.ValueMap(true)
 }

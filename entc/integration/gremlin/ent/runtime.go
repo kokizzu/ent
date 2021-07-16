@@ -18,6 +18,7 @@ import (
 	"entgo.io/ent/entc/integration/gremlin/ent/file"
 	"entgo.io/ent/entc/integration/gremlin/ent/group"
 	"entgo.io/ent/entc/integration/gremlin/ent/groupinfo"
+	"entgo.io/ent/entc/integration/gremlin/ent/item"
 	"entgo.io/ent/entc/integration/gremlin/ent/pet"
 	"entgo.io/ent/entc/integration/gremlin/ent/task"
 	"entgo.io/ent/entc/integration/gremlin/ent/user"
@@ -65,39 +66,41 @@ func init() {
 	// fieldtype.MACValidator is a validator for the "mac" field. It is called by the builders before save.
 	fieldtype.MACValidator = fieldtypeDescMAC.Validators[0].(func(string) error)
 	// fieldtypeDescDir is the schema descriptor for dir field.
-	fieldtypeDescDir := fieldtypeFields[31].Descriptor()
+	fieldtypeDescDir := fieldtypeFields[32].Descriptor()
 	// fieldtype.DefaultDir holds the default value on creation for the dir field.
 	fieldtype.DefaultDir = fieldtypeDescDir.Default.(func() http.Dir)
 	// fieldtypeDescNdir is the schema descriptor for ndir field.
-	fieldtypeDescNdir := fieldtypeFields[32].Descriptor()
+	fieldtypeDescNdir := fieldtypeFields[33].Descriptor()
 	// fieldtype.NdirValidator is a validator for the "ndir" field. It is called by the builders before save.
 	fieldtype.NdirValidator = fieldtypeDescNdir.Validators[0].(func(string) error)
 	// fieldtypeDescStr is the schema descriptor for str field.
-	fieldtypeDescStr := fieldtypeFields[33].Descriptor()
+	fieldtypeDescStr := fieldtypeFields[34].Descriptor()
 	// fieldtype.DefaultStr holds the default value on creation for the str field.
 	fieldtype.DefaultStr = fieldtypeDescStr.Default.(func() sql.NullString)
 	// fieldtypeDescNullStr is the schema descriptor for null_str field.
-	fieldtypeDescNullStr := fieldtypeFields[34].Descriptor()
+	fieldtypeDescNullStr := fieldtypeFields[35].Descriptor()
 	// fieldtype.DefaultNullStr holds the default value on creation for the null_str field.
 	fieldtype.DefaultNullStr = fieldtypeDescNullStr.Default.(func() *sql.NullString)
 	// fieldtypeDescLink is the schema descriptor for link field.
-	fieldtypeDescLink := fieldtypeFields[35].Descriptor()
+	fieldtypeDescLink := fieldtypeFields[36].Descriptor()
 	// fieldtype.LinkValidator is a validator for the "link" field. It is called by the builders before save.
 	fieldtype.LinkValidator = fieldtypeDescLink.Validators[0].(func(string) error)
 	// fieldtypeDescIP is the schema descriptor for ip field.
-	fieldtypeDescIP := fieldtypeFields[41].Descriptor()
+	fieldtypeDescIP := fieldtypeFields[42].Descriptor()
 	// fieldtype.DefaultIP holds the default value on creation for the ip field.
 	fieldtype.DefaultIP = fieldtypeDescIP.Default.(func() net.IP)
+	// fieldtype.IPValidator is a validator for the "ip" field. It is called by the builders before save.
+	fieldtype.IPValidator = fieldtypeDescIP.Validators[0].(func([]byte) error)
 	// fieldtypeDescPair is the schema descriptor for pair field.
-	fieldtypeDescPair := fieldtypeFields[54].Descriptor()
+	fieldtypeDescPair := fieldtypeFields[55].Descriptor()
 	// fieldtype.DefaultPair holds the default value on creation for the pair field.
 	fieldtype.DefaultPair = fieldtypeDescPair.Default.(func() schema.Pair)
 	// fieldtypeDescVstring is the schema descriptor for vstring field.
-	fieldtypeDescVstring := fieldtypeFields[56].Descriptor()
+	fieldtypeDescVstring := fieldtypeFields[57].Descriptor()
 	// fieldtype.DefaultVstring holds the default value on creation for the vstring field.
 	fieldtype.DefaultVstring = fieldtypeDescVstring.Default.(func() schema.VString)
 	// fieldtypeDescTriple is the schema descriptor for triple field.
-	fieldtypeDescTriple := fieldtypeFields[57].Descriptor()
+	fieldtypeDescTriple := fieldtypeFields[58].Descriptor()
 	// fieldtype.DefaultTriple holds the default value on creation for the triple field.
 	fieldtype.DefaultTriple = fieldtypeDescTriple.Default.(func() schema.Triple)
 	fileFields := schema.File{}.Fields()
@@ -164,6 +167,12 @@ func init() {
 	groupinfoDescMaxUsers := groupinfoFields[1].Descriptor()
 	// groupinfo.DefaultMaxUsers holds the default value on creation for the max_users field.
 	groupinfo.DefaultMaxUsers = groupinfoDescMaxUsers.Default.(int)
+	itemFields := schema.Item{}.Fields()
+	_ = itemFields
+	// itemDescID is the schema descriptor for id field.
+	itemDescID := itemFields[0].Descriptor()
+	// item.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	item.IDValidator = itemDescID.Validators[0].(func(string) error)
 	petFields := schema.Pet{}.Fields()
 	_ = petFields
 	// petDescAge is the schema descriptor for age field.

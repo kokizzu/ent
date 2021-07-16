@@ -50,10 +50,10 @@ The following types are currently supported by the framework:
 - `bool`
 - `string`
 - `time.Time`
+- `UUID`
 - `[]byte` (SQL only).
 - `JSON` (SQL only).
 - `Enum` (SQL only).
-- `UUID` (SQL only).
 - `Other` (SQL only).
 
 ```go
@@ -127,7 +127,8 @@ func (Group) Fields() []ent.Field {
 func (Blob) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
-			Default(uuid.New),
+			Default(uuid.New).
+			StorageKey("oid"),
 	}
 }
 
@@ -419,12 +420,12 @@ func (User) Fields() []ent.Field {
 
 ## Nillable
 Sometimes you want to be able to distinguish between the zero value of fields
-and `nil`; for example if the database column contains `0` or `NULL`.
+and `nil`; for example, if the database column contains `0` or `NULL`.
 The `Nillable` option exists exactly for this.
 
 If you have an `Optional` field of type `T`, setting it to `Nillable` will generate
 a struct field with type `*T`. Hence, if the database returns `NULL` for this field,
-the struct field will be `nil`. Otherwise, it will contains a pointer to the actual data.
+the struct field will be `nil`. Otherwise, it will contain a pointer to the actual data.
 
 For example, given this schema:
 ```go

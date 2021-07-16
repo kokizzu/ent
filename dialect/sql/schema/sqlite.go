@@ -122,6 +122,8 @@ func (*SQLite) cType(c *Column) (t string) {
 		t = "json"
 	case field.TypeUUID:
 		t = "uuid"
+	case field.TypeOther:
+		t = c.typ
 	default:
 		panic(fmt.Sprintf("unsupported type %q for column %q", c.Type, c.Name))
 	}
@@ -140,9 +142,9 @@ func (d *SQLite) addColumn(c *Column) *sql.ColumnBuilder {
 	return b
 }
 
-// addIndex returns the querying for adding an index to SQLite.
+// addIndex returns the query for adding an index to SQLite.
 func (d *SQLite) addIndex(i *Index, table string) *sql.IndexBuilder {
-	return i.Builder(table)
+	return i.Builder(table).IfNotExists()
 }
 
 // dropIndex drops a SQLite index.
@@ -280,7 +282,10 @@ func (d *SQLite) scanColumn(c *Column, rows *sql.Rows) error {
 	if pk.Int64 > 0 {
 		c.Key = PrimaryKey
 	}
-	parts, _, _, err := parseColumn(c.typ)
+	if c.typ == "" {
+		return fmt.Errorf("missing type information for column %q", c.Name)
+	}
+	parts, size, _, err := parseColumn(c.typ)
 	if err != nil {
 		return err
 	}
@@ -300,9 +305,11 @@ func (d *SQLite) scanColumn(c *Column, rows *sql.Rows) error {
 		c.Type = field.TypeJSON
 	case "uuid":
 		c.Type = field.TypeUUID
-	case "varchar", "text":
-		c.Size = DefaultStringLen
+	case "varchar", "char", "text":
+		c.Size = size
 		c.Type = field.TypeString
+	case "decimal", "numeric":
+		c.Type = field.TypeOther
 	}
 	if defaults.Valid {
 		return c.ScanDefault(defaults.String)
@@ -335,5 +342,6 @@ func (d *SQLite) tables() sql.Querier {
 // needsConversion reports if column "old" needs to be converted
 // (by table altering) to column "new".
 func (d *SQLite) needsConversion(old, new *Column) bool {
-	return d.cType(old) != d.cType(new)
+	c1, c2 := d.cType(old), d.cType(new)
+	return c1 != c2 && old.typ != c2
 }

@@ -407,7 +407,26 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/4740651?v=4",
       "profile": "https://github.com/tarrencev",
       "contributions": [
+        "doc",
+        "code"
+      ]
+    },
+    {
+      "login": "MONAKA0721",
+      "name": "Yuya Sumie",
+      "avatar_url": "https://avatars.githubusercontent.com/u/32859963?v=4",
+      "profile": "https://mo7ka.com",
+      "contributions": [
         "doc"
+      ]
+    },
+    {
+      "login": "akfaew",
+      "name": "Michal Mazurek",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7853732?v=4",
+      "profile": "http://jasminek.net",
+      "contributions": [
+        "code"
       ]
     }
   ],

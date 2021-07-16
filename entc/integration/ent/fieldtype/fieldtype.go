@@ -79,6 +79,8 @@ const (
 	FieldMAC = "mac"
 	// FieldStringArray holds the string denoting the string_array field in the database.
 	FieldStringArray = "string_array"
+	// FieldPassword holds the string denoting the password field in the database.
+	FieldPassword = "password"
 	// FieldStringScanner holds the string denoting the string_scanner field in the database.
 	FieldStringScanner = "string_scanner"
 	// FieldDuration holds the string denoting the duration field in the database.
@@ -137,6 +139,10 @@ const (
 	FieldVstring = "vstring"
 	// FieldTriple holds the string denoting the triple field in the database.
 	FieldTriple = "triple"
+	// FieldBigInt holds the string denoting the big_int field in the database.
+	FieldBigInt = "big_int"
+	// FieldPasswordOther holds the string denoting the password_other field in the database.
+	FieldPasswordOther = "password_other"
 	// Table holds the table name of the fieldtype in the database.
 	Table = "field_types"
 )
@@ -173,6 +179,7 @@ var Columns = []string{
 	FieldLinkOther,
 	FieldMAC,
 	FieldStringArray,
+	FieldPassword,
 	FieldStringScanner,
 	FieldDuration,
 	FieldDir,
@@ -202,6 +209,8 @@ var Columns = []string{
 	FieldNilPair,
 	FieldVstring,
 	FieldTriple,
+	FieldBigInt,
+	FieldPasswordOther,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "field_types"
@@ -242,6 +251,8 @@ var (
 	LinkValidator func(string) error
 	// DefaultIP holds the default value on creation for the "ip" field.
 	DefaultIP func() net.IP
+	// IPValidator is a validator for the "ip" field. It is called by the builders before save.
+	IPValidator func([]byte) error
 	// DefaultPair holds the default value on creation for the "pair" field.
 	DefaultPair func() schema.Pair
 	// DefaultVstring holds the default value on creation for the "vstring" field.

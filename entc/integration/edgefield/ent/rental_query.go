@@ -19,6 +19,7 @@ import (
 	"entgo.io/ent/entc/integration/edgefield/ent/rental"
 	"entgo.io/ent/entc/integration/edgefield/ent/user"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // RentalQuery is the builder for querying Rental entities.
@@ -364,8 +365,8 @@ func (rq *RentalQuery) GroupBy(field string, fields ...string) *RentalGroupBy {
 //		Select(rental.FieldDate).
 //		Scan(ctx, &v)
 //
-func (rq *RentalQuery) Select(field string, fields ...string) *RentalSelect {
-	rq.fields = append([]string{field}, fields...)
+func (rq *RentalQuery) Select(fields ...string) *RentalSelect {
+	rq.fields = append(rq.fields, fields...)
 	return &RentalSelect{RentalQuery: rq}
 }
 
@@ -441,8 +442,8 @@ func (rq *RentalQuery) sqlAll(ctx context.Context) ([]*Rental, error) {
 	}
 
 	if query := rq.withCar; query != nil {
-		ids := make([]int, 0, len(nodes))
-		nodeids := make(map[int][]*Rental)
+		ids := make([]uuid.UUID, 0, len(nodes))
+		nodeids := make(map[uuid.UUID][]*Rental)
 		for i := range nodes {
 			fk := nodes[i].CarID
 			if _, ok := nodeids[fk]; !ok {

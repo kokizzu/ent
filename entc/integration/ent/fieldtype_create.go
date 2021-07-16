@@ -380,6 +380,20 @@ func (ftc *FieldTypeCreate) SetStringArray(s schema.Strings) *FieldTypeCreate {
 	return ftc
 }
 
+// SetPassword sets the "password" field.
+func (ftc *FieldTypeCreate) SetPassword(s string) *FieldTypeCreate {
+	ftc.mutation.SetPassword(s)
+	return ftc
+}
+
+// SetNillablePassword sets the "password" field if the given value is not nil.
+func (ftc *FieldTypeCreate) SetNillablePassword(s *string) *FieldTypeCreate {
+	if s != nil {
+		ftc.SetPassword(*s)
+	}
+	return ftc
+}
+
 // SetStringScanner sets the "string_scanner" field.
 func (ftc *FieldTypeCreate) SetStringScanner(ss schema.StringScanner) *FieldTypeCreate {
 	ftc.mutation.SetStringScanner(ss)
@@ -698,6 +712,34 @@ func (ftc *FieldTypeCreate) SetNillableTriple(s *schema.Triple) *FieldTypeCreate
 	return ftc
 }
 
+// SetBigInt sets the "big_int" field.
+func (ftc *FieldTypeCreate) SetBigInt(si schema.BigInt) *FieldTypeCreate {
+	ftc.mutation.SetBigInt(si)
+	return ftc
+}
+
+// SetNillableBigInt sets the "big_int" field if the given value is not nil.
+func (ftc *FieldTypeCreate) SetNillableBigInt(si *schema.BigInt) *FieldTypeCreate {
+	if si != nil {
+		ftc.SetBigInt(*si)
+	}
+	return ftc
+}
+
+// SetPasswordOther sets the "password_other" field.
+func (ftc *FieldTypeCreate) SetPasswordOther(s schema.Password) *FieldTypeCreate {
+	ftc.mutation.SetPasswordOther(s)
+	return ftc
+}
+
+// SetNillablePasswordOther sets the "password_other" field if the given value is not nil.
+func (ftc *FieldTypeCreate) SetNillablePasswordOther(s *schema.Password) *FieldTypeCreate {
+	if s != nil {
+		ftc.SetPasswordOther(*s)
+	}
+	return ftc
+}
+
 // Mutation returns the FieldTypeMutation object of the builder.
 func (ftc *FieldTypeCreate) Mutation() *FieldTypeMutation {
 	return ftc.mutation
@@ -832,6 +874,11 @@ func (ftc *FieldTypeCreate) check() error {
 			return &ValidationError{Name: "link", err: fmt.Errorf("ent: validator failed for field \"link\": %w", err)}
 		}
 	}
+	if v, ok := ftc.mutation.IP(); ok {
+		if err := fieldtype.IPValidator([]byte(v)); err != nil {
+			return &ValidationError{Name: "ip", err: fmt.Errorf("ent: validator failed for field \"ip\": %w", err)}
+		}
+	}
 	if _, ok := ftc.mutation.Role(); !ok {
 		return &ValidationError{Name: "role", err: errors.New("ent: missing required field \"role\"")}
 	}
@@ -860,8 +907,8 @@ func (ftc *FieldTypeCreate) check() error {
 func (ftc *FieldTypeCreate) sqlSave(ctx context.Context) (*FieldType, error) {
 	_node, _spec := ftc.createSpec()
 	if err := sqlgraph.CreateNode(ctx, ftc.driver, _spec); err != nil {
-		if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return nil, err
 	}
@@ -1113,6 +1160,14 @@ func (ftc *FieldTypeCreate) createSpec() (*FieldType, *sqlgraph.CreateSpec) {
 		})
 		_node.StringArray = value
 	}
+	if value, ok := ftc.mutation.Password(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: fieldtype.FieldPassword,
+		})
+		_node.Password = value
+	}
 	if value, ok := ftc.mutation.StringScanner(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -1345,6 +1400,22 @@ func (ftc *FieldTypeCreate) createSpec() (*FieldType, *sqlgraph.CreateSpec) {
 		})
 		_node.Triple = value
 	}
+	if value, ok := ftc.mutation.BigInt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeInt,
+			Value:  value,
+			Column: fieldtype.FieldBigInt,
+		})
+		_node.BigInt = value
+	}
+	if value, ok := ftc.mutation.PasswordOther(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeOther,
+			Value:  value,
+			Column: fieldtype.FieldPasswordOther,
+		})
+		_node.PasswordOther = value
+	}
 	return _node, _spec
 }
 
@@ -1379,8 +1450,8 @@ func (ftcb *FieldTypeCreateBulk) Save(ctx context.Context) ([]*FieldType, error)
 				} else {
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, ftcb.driver, &sqlgraph.BatchCreateSpec{Nodes: specs}); err != nil {
-						if cerr, ok := isSQLConstraintError(err); ok {
-							err = cerr
+						if sqlgraph.IsConstraintError(err) {
+							err = &ConstraintError{err.Error(), err}
 						}
 					}
 				}

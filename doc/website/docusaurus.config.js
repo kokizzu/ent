@@ -60,7 +60,9 @@ module.exports={
           sidebarPath: require.resolve('./sidebars.js'),
         },
         "blog": {
-          "path": "blog"
+          "path": "blog",
+          "blogSidebarCount": 'ALL',
+          "blogSidebarTitle": 'All our posts',
         },
         "theme": {
           "customCss": ["../src/css/custom.css"],
@@ -71,7 +73,7 @@ module.exports={
   "plugins": [],
   "themeConfig": {
     prism: {
-      additionalLanguages: ['gotemplate'],
+      additionalLanguages: ['gotemplate', 'protobuf'],
     },
     algolia: {
       apiKey: "bfc8175da1bd5078f1c02e5c8a6fe782",

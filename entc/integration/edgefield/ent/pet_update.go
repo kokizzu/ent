@@ -33,7 +33,6 @@ func (pu *PetUpdate) Where(ps ...predicate.Pet) *PetUpdate {
 
 // SetOwnerID sets the "owner_id" field.
 func (pu *PetUpdate) SetOwnerID(i int) *PetUpdate {
-	pu.mutation.ResetOwnerID()
 	pu.mutation.SetOwnerID(i)
 	return pu
 }
@@ -175,8 +174,8 @@ func (pu *PetUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{pet.Label}
-		} else if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		} else if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return 0, err
 	}
@@ -193,7 +192,6 @@ type PetUpdateOne struct {
 
 // SetOwnerID sets the "owner_id" field.
 func (puo *PetUpdateOne) SetOwnerID(i int) *PetUpdateOne {
-	puo.mutation.ResetOwnerID()
 	puo.mutation.SetOwnerID(i)
 	return puo
 }
@@ -362,8 +360,8 @@ func (puo *PetUpdateOne) sqlSave(ctx context.Context) (_node *Pet, err error) {
 	if err = sqlgraph.UpdateNode(ctx, puo.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{pet.Label}
-		} else if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		} else if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return nil, err
 	}

@@ -22,6 +22,12 @@ type ItemCreate struct {
 	hooks    []Hook
 }
 
+// SetID sets the "id" field.
+func (ic *ItemCreate) SetID(s string) *ItemCreate {
+	ic.mutation.SetID(s)
+	return ic
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (ic *ItemCreate) Mutation() *ItemMutation {
 	return ic.mutation
@@ -76,19 +82,22 @@ func (ic *ItemCreate) SaveX(ctx context.Context) *Item {
 
 // check runs all checks and user-defined validators on the builder.
 func (ic *ItemCreate) check() error {
+	if v, ok := ic.mutation.ID(); ok {
+		if err := item.IDValidator(v); err != nil {
+			return &ValidationError{Name: "id", err: fmt.Errorf("ent: validator failed for field \"id\": %w", err)}
+		}
+	}
 	return nil
 }
 
 func (ic *ItemCreate) sqlSave(ctx context.Context) (*Item, error) {
 	_node, _spec := ic.createSpec()
 	if err := sqlgraph.CreateNode(ctx, ic.driver, _spec); err != nil {
-		if cerr, ok := isSQLConstraintError(err); ok {
-			err = cerr
+		if sqlgraph.IsConstraintError(err) {
+			err = &ConstraintError{err.Error(), err}
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
 	return _node, nil
 }
 
@@ -98,11 +107,15 @@ func (ic *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 		_spec = &sqlgraph.CreateSpec{
 			Table: item.Table,
 			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
+				Type:   field.TypeString,
 				Column: item.FieldID,
 			},
 		}
 	)
+	if id, ok := ic.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = id
+	}
 	return _node, _spec
 }
 
@@ -136,8 +149,8 @@ func (icb *ItemCreateBulk) Save(ctx context.Context) ([]*Item, error) {
 				} else {
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, icb.driver, &sqlgraph.BatchCreateSpec{Nodes: specs}); err != nil {
-						if cerr, ok := isSQLConstraintError(err); ok {
-							err = cerr
+						if sqlgraph.IsConstraintError(err) {
+							err = &ConstraintError{err.Error(), err}
 						}
 					}
 				}
@@ -146,8 +159,6 @@ func (icb *ItemCreateBulk) Save(ctx context.Context) ([]*Item, error) {
 				}
 				mutation.id = &nodes[i].ID
 				mutation.done = true
-				id := specs[i].ID.Value.(int64)
-				nodes[i].ID = int(id)
 				return nodes[i], nil
 			})
 			for i := len(builder.hooks) - 1; i >= 0; i-- {

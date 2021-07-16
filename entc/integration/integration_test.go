@@ -389,6 +389,10 @@ func Select(t *testing.T, client *ent.Client) {
 		Select(pet.FieldName).
 		StringsX(ctx)
 	require.Equal([]string{"b", "c", "a", "b"}, names)
+
+	var ps []*ent.Pet
+	client.Pet.Query().Select().ScanX(ctx, &ps)
+	require.Len(ps, 4, "support scanning nodes manually")
 }
 
 func Predicate(t *testing.T, client *ent.Client) {
@@ -1388,6 +1392,10 @@ func Mutation(t *testing.T, client *ent.Client) {
 	usr := ub.SaveX(ctx)
 	require.Equal(t, "boring", a8m.Name)
 	require.Equal(t, "boring", usr.Name)
+
+	require.Equal(t, []int{usr.ID}, a8m.Update().AddFriends(usr).Mutation().FriendsIDs())
+	require.Empty(t, a8m.Update().AddFriends(usr).RemoveFriends(usr).Mutation().FriendsIDs())
+	require.Equal(t, []int{usr.ID}, a8m.Update().AddFriends(usr).RemoveFriends(a8m).Mutation().FriendsIDs())
 }
 
 // Test templates codegen.
